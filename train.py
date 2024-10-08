@@ -43,7 +43,7 @@ else:
     )
     print('cpu')
 
-train_dataloader = DataLoader(train_dataset, batch_size=32, shuffle=True)
+train_dataloader = DataLoader(train_dataset, batch_size=16, shuffle=True)
 
 if CONTINUE > 1:
     model.load_state_dict(torch.load(WEIGHT_PATH + 'epoch_' + str(CONTINUE) + '.pth'))
@@ -51,20 +51,21 @@ if CONTINUE > 1:
 
 # Training Parameters
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-5)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
 
 epoch = CONTINUE + 1
 epoch_loss = 1
 epoch_losses = []
+patch = 0
+NUM_PATCH = len(train_dataloader)
 # if CONTINUE > 1:
 #     epoch_losses = list(np.load(WEIGHT_PATH + 'epoch_losses.npy'))[:CONTINUE]
 
 while epoch_loss > 1e-4:
     model.train()
     running_loss = 0.0
-    for inputs, labels in train_dataloader:
-        
-        current_images, goal_images = inputs
+    valid_loss = 0.0
+    for current_images, goal_images, labels in train_dataloader:
 
         optimizer.zero_grad()
 

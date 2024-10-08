@@ -19,7 +19,6 @@ class SPOTDataLoader(Dataset):
         self.goal_folder = goal_folder
         self.transform = transform
         self.labels = np.load(labels_file)
-        self.folder_names = sorted(os.listdir(root_dir))
 
         if torch.cuda.is_available():
             self.cuda = True
@@ -27,10 +26,10 @@ class SPOTDataLoader(Dataset):
             self.cuda = False
 
     def __len__(self):
-        return len(self.folder_names)
+        return self.labels.shape[0]
 
     def __getitem__(self, idx):
-        folder_name = self.folder_names[idx]
+        folder_name = format(idx, '05d')
         folder_path = os.path.join(self.root_dir, folder_name)
 
         input_images = []
@@ -61,4 +60,4 @@ class SPOTDataLoader(Dataset):
             goal_images = torch.stack(goal_images, dim=0)
             label_tensor = torch.tensor(label)
 
-        return (input_images, goal_images), label_tensor
+        return input_images, goal_images, label_tensor
