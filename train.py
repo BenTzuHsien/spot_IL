@@ -10,10 +10,9 @@ from sklearn.model_selection import KFold
 # Setup Destination
 DATASET_INIRIAL_PATH = os.getcwd() + '/dataset_initial/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
-TEST_PATH = DATASET_INIRIAL_PATH + 'test/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling_2'
+WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling_2/'
 TRAINING_LOSS_PATH = WEIGHT_PATH + 'training_losses.npy'
 ACCURACIES_PATH = WEIGHT_PATH + 'accuracies.npy'
 if not os.path.exists(WEIGHT_PATH):
@@ -69,7 +68,7 @@ LOSS_SCALE = 1e3
 NUM_FOLD = 5
 NUM_FOLD_TRAIN_ITER = 1
 k_fold = KFold(NUM_FOLD, shuffle=True)
-TOLERANCE = 1e-3
+TOLERANCE = 1e-4
 accuracies = []   #[train_accuracy valid_accuracy]
 
 if CONTINUE > 1:
@@ -170,7 +169,7 @@ plt.scatter(range(epoch), training_loss, color='blue', label='Training Loss')
 plt.plot(range(epoch), average_loss, color='cyan', linestyle='-', label='Average Training Loss')
 plt.title("Training Loss")
 plt.xlabel("Epoches")
-plt.ylabel("Loss (radians)")
+plt.ylabel("Loss (1000 radians)")
 plt.legend()
 
 lowest_loss = training_loss[0]
