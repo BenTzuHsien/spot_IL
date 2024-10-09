@@ -8,36 +8,36 @@ class FiveResNet18MLP5(nn.Module):
 
         # Current Images Set
         # ResNet1
-        self.current_resnet1 = resnet18(pretrained=False)
+        self.current_resnet1 = resnet18(weights=None)
         self.current_resnet1 = nn.Sequential(*list(self.current_resnet1.children())[:-1])
         # ResNet2
-        self.current_resnet2 = resnet18(pretrained=False)
+        self.current_resnet2 = resnet18(weights=None)
         self.current_resnet2 = nn.Sequential(*list(self.current_resnet2.children())[:-1])
         # ResNet3
-        self.current_resnet3 = resnet18(pretrained=False)
+        self.current_resnet3 = resnet18(weights=None)
         self.current_resnet3 = nn.Sequential(*list(self.current_resnet3.children())[:-1])
         # ResNet4
-        self.current_resnet4 = resnet18(pretrained=False)
+        self.current_resnet4 = resnet18(weights=None)
         self.current_resnet4 = nn.Sequential(*list(self.current_resnet4.children())[:-1])
         # ResNet5
-        self.current_resnet5 = resnet18(pretrained=False)
+        self.current_resnet5 = resnet18(weights=None)
         self.current_resnet5 = nn.Sequential(*list(self.current_resnet5.children())[:-1])
 
         # Goal Images Set
         # ResNet1
-        self.goal_resnet1 = resnet18(pretrained=False)
+        self.goal_resnet1 = resnet18(weights=None)
         self.goal_resnet1 = nn.Sequential(*list(self.goal_resnet1.children())[:-1])
         # ResNet2
-        self.goal_resnet2 = resnet18(pretrained=False)
+        self.goal_resnet2 = resnet18(weights=None)
         self.goal_resnet2 = nn.Sequential(*list(self.goal_resnet2.children())[:-1])
         # ResNet3
-        self.goal_resnet3 = resnet18(pretrained=False)
+        self.goal_resnet3 = resnet18(weights=None)
         self.goal_resnet3 = nn.Sequential(*list(self.goal_resnet3.children())[:-1])
         # ResNet4
-        self.goal_resnet4 = resnet18(pretrained=False)
+        self.goal_resnet4 = resnet18(weights=None)
         self.goal_resnet4 = nn.Sequential(*list(self.goal_resnet4.children())[:-1])
         # ResNet5
-        self.goal_resnet5 = resnet18(pretrained=False)
+        self.goal_resnet5 = resnet18(weights=None)
         self.goal_resnet5 = nn.Sequential(*list(self.goal_resnet5.children())[:-1])
 
         # MLP Layers
