@@ -13,7 +13,7 @@ TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 TEST_PATH = DATASET_INIRIAL_PATH + 'test/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/'
+WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling_2'
 TRAINING_LOSS_PATH = WEIGHT_PATH + 'training_losses.npy'
 ACCURACIES_PATH = WEIGHT_PATH + 'accuracies.npy'
 if not os.path.exists(WEIGHT_PATH):
@@ -54,7 +54,7 @@ else:
 
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 BATCH_SIZE = 16
 
 # Training Parameters
@@ -63,12 +63,13 @@ training_loss = 1e6
 training_total_loss = 0
 training_losses = []   #[training_loss training_average_loss]
 WEIGHT_SAVING_STEP = 10
+LOSS_SCALE = 1e3
 
 # Validation Parameter
 NUM_FOLD = 5
 NUM_FOLD_TRAIN_ITER = 1
 k_fold = KFold(NUM_FOLD, shuffle=True)
-TOLERANCE = 1e-2
+TOLERANCE = 1e-3
 accuracies = []   #[train_accuracy valid_accuracy]
 
 if CONTINUE > 1:
@@ -78,7 +79,7 @@ if CONTINUE > 1:
     accuracies = list(np.load(ACCURACIES_PATH))[:CONTINUE]
     print('Parameter Loaded!')
 
-while training_loss > (TOLERANCE ** 2):
+while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
     for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
         # print(f'FOLD {fold}')
 
@@ -97,7 +98,7 @@ while training_loss > (TOLERANCE ** 2):
                 
                 optimizer.zero_grad()
                 output = model(current_images, goal_images)
-                loss = loss_fn(output.flatten(), labels.float())
+                loss = loss_fn(output.flatten(), labels.float()) * LOSS_SCALE
 
                 loss.backward()
                 optimizer.step()
@@ -106,8 +107,9 @@ while training_loss > (TOLERANCE ** 2):
         training_loss = running_loss / len(train_dataloader)
 
         # Moving Average
-        training_total_loss += training_loss
-        training_average_loss = training_total_loss / (len(training_losses) + 1)
+        training_total_loss += training_loss * 5
+        training_average_loss = training_total_loss / (len(training_losses) + 5)
+        training_total_loss = training_average_loss * (len(training_losses) + 1)
 
         # Save training loss
         training_losses.append([training_loss, training_average_loss])
@@ -147,6 +149,9 @@ while training_loss > (TOLERANCE ** 2):
             np.save(ACCURACIES_PATH, accuracies)
 
         epoch += 1
+
+        if training_loss <= ((TOLERANCE ** 2) * LOSS_SCALE):
+            break
 
     # print('All Folds')
 
