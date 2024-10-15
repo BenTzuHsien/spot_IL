@@ -3,7 +3,7 @@ import torch, os
 from torchvision import transforms
 from spotdatasetloader import SPOTDataLoader
 from FiveResNet18MLP5 import FiveResNet18MLP5
-import matplotlib.pyplot as plt
+from plot_graph import plot_graph
 import numpy as np
 from sklearn.model_selection import KFold
 
@@ -12,16 +12,17 @@ DATASET_INIRIAL_PATH = os.getcwd() + '/dataset_initial/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling_2/'
-TRAINING_LOSS_PATH = WEIGHT_PATH + 'training_losses.npy'
-ACCURACIES_PATH = WEIGHT_PATH + 'accuracies.npy'
+WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
 if not os.path.exists(WEIGHT_PATH):
-    os.mkdir(WEIGHT_PATH)
+    os.makedirs(WEIGHT_PATH)
+FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
+if not os.path.exists(FIGURE_PATH):
+    os.makedirs(FIGURE_PATH)
 
-# Start from beginning, use 0
-CONTINUE = 0
-
-model = FiveResNet18MLP5()
+# KFold Parameters
+NUM_FOLD = 5
+k_fold = KFold(NUM_FOLD, shuffle=True)
+CONTINUE = [0] * NUM_FOLD   # Start from beginning, use 0
 
 # Preprocess for images
 data_transforms = transforms.Compose([
@@ -38,8 +39,7 @@ if torch.cuda.is_available():
         labels_file = LABEL_PATH,
         transform = data_transforms
     )
-
-    model.cuda()
+    DEVICE = 'cuda'
     print('Cuda')
 
 else:
@@ -49,60 +49,74 @@ else:
         labels_file = LABEL_PATH,
         transform = data_transforms
     )
-    print('cpu')
+    DEVICE = 'cpu'
+    print('CPU')
 
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=1e-4)
 BATCH_SIZE = 16
+LEARNING_RATE = 1e-4
 
 # Training Parameters
-epoch = CONTINUE + 1
-training_loss = 1e6
-training_total_loss = 0
-training_losses = []   #[training_loss training_average_loss]
 WEIGHT_SAVING_STEP = 10
 LOSS_SCALE = 1e3
 
 # Validation Parameter
-NUM_FOLD = 5
-NUM_FOLD_TRAIN_ITER = 1
-k_fold = KFold(NUM_FOLD, shuffle=True)
 TOLERANCE = 1e-4
-accuracies = []   #[train_accuracy valid_accuracy]
 
-if CONTINUE > 1:
-    model.load_state_dict(torch.load(WEIGHT_PATH + 'epoch_' + str(CONTINUE) + '.pth'))
-    print('Weight Loaded!')
-    training_losses = list(np.load(TRAINING_LOSS_PATH))[:CONTINUE]
-    accuracies = list(np.load(ACCURACIES_PATH))[:CONTINUE]
-    print('Parameter Loaded!')
+# Saving Hyper Param
+hyper_params_path = WEIGHT_PATH + 'hyper_params'
+hyper_params = {'NUM_FOLD': NUM_FOLD, 'BATCH_SIZE': BATCH_SIZE, 'LEARNING_RATE': LEARNING_RATE, 'LOSS_SCALE': LOSS_SCALE, 'TOLERANCE': TOLERANCE}
+np.savez(hyper_params_path, **hyper_params)
 
-while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
-    for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
-        # print(f'FOLD {fold}')
+for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
+    print(f'FOLD {fold}')
+    fold_path = WEIGHT_PATH + 'fold_' + str(fold) + '/'
+    if not os.path.exists(fold_path):
+        os.mkdir(fold_path)
 
-        train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
-        valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
+    # Setup Model
+    model = FiveResNet18MLP5().to(DEVICE)
+    optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
-        train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=train_subsampler)
-        valid_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=valid_subsampler)
+    # Tracking Parameters
+    epoch = CONTINUE[fold] + 1
+    training_loss = 1e6
+    training_total_loss = 0
+    training_losses = []   #[training_loss training_average_loss]
+    tracking_losses_path = fold_path + 'training_losses.npy'
+    accuracies = []   #[train_accuracy valid_accuracy]
+    accuracies_path = fold_path + 'accuracies.npy'
 
-        # Train Model
-        model.train()
-        running_loss = 0.0
-        for iter in range(NUM_FOLD_TRAIN_ITER):
-            
-            for current_images, goal_images, labels in train_dataloader:
-                
-                optimizer.zero_grad()
-                output = model(current_images, goal_images)
-                loss = loss_fn(output.flatten(), labels.float()) * LOSS_SCALE
+    if CONTINUE[fold] > 1:
+        model.load_state_dict(torch.load(fold_path + 'epoch_' + str(CONTINUE[fold]) + '.pth'))
+        print('Weight Loaded!')
+        training_losses = list(np.load(tracking_losses_path))[:CONTINUE[fold]]
+        accuracies = list(np.load(accuracies_path))[:CONTINUE[fold]]
+        print(f'Fold {fold} Parameter Loaded!')
 
-                loss.backward()
-                optimizer.step()
-                running_loss += loss.item()
+    train_subsampler = torch.utils.data.SubsetRandomSampler(train_ids)
+    valid_subsampler = torch.utils.data.SubsetRandomSampler(valid_ids)
+
+    train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=train_subsampler)
+    valid_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, sampler=valid_subsampler)
+
+    # Train Model
+    model.train()
+    while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
         
+        running_loss = 0.0
+        
+        for current_images, goal_images, labels in train_dataloader:
+            
+            optimizer.zero_grad()
+            output = model(current_images, goal_images)
+            loss = loss_fn(output.flatten(), labels.float()) * LOSS_SCALE
+
+            loss.backward()
+            optimizer.step()
+            running_loss += loss.item()
+    
         training_loss = running_loss / len(train_dataloader)
 
         # Moving Average
@@ -112,11 +126,11 @@ while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
 
         # Save training loss
         training_losses.append([training_loss, training_average_loss])
-        print(f'Epoch {epoch}, Loss: {training_loss:.6f}, Average Loss: {training_average_loss:.6f}', end='; ')
-        np.save(TRAINING_LOSS_PATH, training_losses)
+        print(f'Epoch {epoch}, Loss: {training_losses[epoch - 1][0]:.6f}, Average Loss: {training_losses[epoch - 1][1]:.6f}', end='; ')
+        np.save(tracking_losses_path, training_losses)
 
         if (epoch % WEIGHT_SAVING_STEP) == 0:
-            torch.save(model.state_dict(), (WEIGHT_PATH + 'epoch_' + str(epoch) + '.pth'))
+            torch.save(model.state_dict(), (fold_path + 'epoch_' + str(epoch) + '.pth'))
             print('Save Weights', end='; ')
 
         # Valid Model
@@ -144,65 +158,17 @@ while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
             valid_accuracy = (num_correct / num_total) * 100
 
             accuracies.append([train_accuracy, valid_accuracy])
-            print(f'Train Accuracy {train_accuracy:.2f}%, Valid Accuracy: {valid_accuracy:.2f}%')
-            np.save(ACCURACIES_PATH, accuracies)
+            print(f'Train Accuracy {accuracies[epoch - 1][0]:.2f}%, Valid Accuracy: {accuracies[epoch - 1][1]:.2f}%')
+            np.save(accuracies_path, accuracies)
 
-        epoch += 1
+            epoch += 1
 
-        if training_loss <= ((TOLERANCE ** 2) * LOSS_SCALE):
-            break
+    print(f'Finished Training fold {fold}')
+    epoch -= 1
 
-    # print('All Folds')
+    # Save last weight
+    torch.save(model.state_dict(), (WEIGHT_PATH + 'fold_' + str(fold) + '/epoch_' + str(epoch) + '.pth'))
+    print('Save Last Weights')
 
-print('Finished Training')
-epoch -= 1
-
-# Save last weight
-torch.save(model.state_dict(), (WEIGHT_PATH + 'epoch_' + str(epoch) + '.pth'))
-print('Save Last Weights')
-
-# Plot Training Loss
-training_loss = [data[0] for data in training_losses]
-average_loss = [data[1] for data in training_losses]
-
-plt.scatter(range(epoch), training_loss, color='blue', label='Training Loss')
-plt.plot(range(epoch), average_loss, color='cyan', linestyle='-', label='Average Training Loss')
-plt.title("Training Loss")
-plt.xlabel("Epoches")
-plt.ylabel("Loss (1000 radians)")
-plt.legend()
-
-lowest_loss = training_loss[0]
-for i in range(epoch):
-
-    if training_loss[i] < lowest_loss:
-        lowest_loss = training_loss[i]
-
-    if (i % WEIGHT_SAVING_STEP) == 0:
-        plt.annotate(str(round(training_loss[i], 6)), xy=(i, training_loss[i]))
-
-plt.annotate(str(round(training_loss[epoch - 1], 6)), xy=(epoch, training_loss[epoch - 1]))
-
-plt.text(0, plt.gca().get_ylim()[1], f'Lowest Loss: {lowest_loss: .6f}')
-
-plt.show()
-
-# Plot Accuracy
-train_accuracy = [data[0] for data in accuracies]
-valid_accuracy = [data[1] for data in accuracies]
-
-plt.plot(range(epoch), train_accuracy, color='blue', linestyle='-', marker='o', label='Training Accuracy')
-plt.plot(range(epoch), valid_accuracy, color='orange', linestyle='-', marker='o', label='Validation Accuracy')
-plt.title("Accuracy")
-plt.xlabel("Epoches")
-plt.ylabel("Acurracy (%)")
-plt.legend()
-
-for i in range(epoch):
-    if (i % WEIGHT_SAVING_STEP) == 0:
-        plt.annotate(str(round(train_accuracy[i], 2)), xy=(i, train_accuracy[i]))
-        plt.annotate(str(round(valid_accuracy[i], 2)), xy=(i, valid_accuracy[i]))
-plt.annotate(str(round(train_accuracy[epoch - 1], 5)), xy=(epoch, train_accuracy[epoch - 1]))
-plt.annotate(str(round(valid_accuracy[epoch - 1], 5)), xy=(epoch, valid_accuracy[epoch - 1]))
-
-plt.show()
+    # Plot Training Loss and Accuracies graphs
+    plot_graph(training_losses, accuracies, FIGURE_PATH, fold, end_plot=epoch)
