@@ -3,6 +3,9 @@ import numpy as np
 import os
 
 WEIGHT_SAVING_STEP = 10
+DPI = 120
+FIGURE_SIZE_PIXEL = [2490, 1490]
+FIGURE_SIZE = [fsp / DPI for fsp in FIGURE_SIZE_PIXEL]
 
 def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot=0, end_plot=0):
 
@@ -18,6 +21,7 @@ def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot
     training_loss = [data[0] for data in training_losses]
     average_loss = [data[1] for data in training_losses]
 
+    plt.figure(figsize=FIGURE_SIZE, dpi=DPI)
     plt.scatter(range(1, end_plot + 1), training_loss, color='blue', label='Training Loss')
     plt.plot(range(1, end_plot + 1), average_loss, color='cyan', linestyle='-', label='Average Training Loss')
     plt.title(f"Fold {fold} Training Loss")
@@ -49,6 +53,7 @@ def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot
     train_accuracy = [data[0] for data in accuracies]
     valid_accuracy = [data[1] for data in accuracies]
 
+    plt.figure(figsize=FIGURE_SIZE, dpi=DPI)
     plt.plot(range(1, end_plot + 1), train_accuracy, color='blue', linestyle='-', marker='o', label='Training Accuracy')
     plt.plot(range(1, end_plot + 1), valid_accuracy, color='orange', linestyle='-', marker='o', label='Validation Accuracy')
     plt.title("Accuracy")
@@ -90,5 +95,6 @@ if __name__ == '__main__':
         END_PLOT = len(np.load(TRAINING_LOSSES_PATH))
         training_losses = list(np.load(TRAINING_LOSSES_PATH))[:END_PLOT]
         accuracies = list(np.load(ACCURACIES_PATH))[:END_PLOT]
+        FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
 
-        plot_graph(training_losses, accuracies, fold=i, start_plot=START_PLOT, end_plot=END_PLOT)
+        plot_graph(training_losses, accuracies, figure_path=FIGURE_PATH, fold=i, start_plot=START_PLOT, end_plot=END_PLOT)
