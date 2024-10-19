@@ -8,10 +8,10 @@ import matplotlib.pyplot as plt
 
 # Parameters
 WEIGHT_DATAET_NAME = 'mixed'
-TEST_DATASET_NAME = 'initial'
+TEST_DATASET_NAME = 'mixed'
 TEST_DATASET_TYPE = 'test'
-FOLD = 1
-WEIGHT_NAME = 'epoch_315.pth'
+FOLD = 0
+WEIGHT_NAME = 'epoch_297.pth'
 
 # Constant
 DATASET_PATH = os.getcwd() + f'/dataset_{TEST_DATASET_NAME}/'

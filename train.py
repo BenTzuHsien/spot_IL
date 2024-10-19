@@ -8,14 +8,17 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 # Setup Destination
-DATASET_INIRIAL_PATH = os.getcwd() + '/dataset_mixed/'
+DATASET_NAME = 'mixed'
+WEIGHT_FOLDER_NAME = 'lr1e-5_with_scaling'
+
+DATASET_INIRIAL_PATH = os.getcwd() + f'/dataset_{DATASET_NAME}/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
+WEIGHT_PATH = os.getcwd() + f'/weights/FiveResNet18MLP5_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/'
 if not os.path.exists(WEIGHT_PATH):
     os.makedirs(WEIGHT_PATH)
-FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
+FIGURE_PATH = os.getcwd() + f'/Results/FiveResNet18MLP5_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/'
 if not os.path.exists(FIGURE_PATH):
     os.makedirs(FIGURE_PATH)
 
