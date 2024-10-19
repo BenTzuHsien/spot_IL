@@ -22,8 +22,8 @@ def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot
     average_loss = [data[1] for data in training_losses]
 
     plt.figure(figsize=FIGURE_SIZE, dpi=DPI)
-    plt.scatter(range(1, end_plot + 1), training_loss, color='blue', label='Training Loss')
-    plt.plot(range(1, end_plot + 1), average_loss, color='cyan', linestyle='-', label='Average Training Loss')
+    plt.scatter(range(start_plot + 1, end_plot + 1), training_loss[start_plot:], color='blue', label='Training Loss')
+    plt.plot(range(start_plot + 1, end_plot + 1), average_loss[start_plot:], color='cyan', linestyle='-', label='Average Training Loss')
     plt.title(f"Fold {fold} Training Loss")
     plt.xlabel("Epoches")
     plt.ylabel("Loss (1000 radians)")
@@ -54,9 +54,9 @@ def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot
     valid_accuracy = [data[1] for data in accuracies]
 
     plt.figure(figsize=FIGURE_SIZE, dpi=DPI)
-    plt.plot(range(1, end_plot + 1), train_accuracy, color='blue', linestyle='-', marker='o', label='Training Accuracy')
-    plt.plot(range(1, end_plot + 1), valid_accuracy, color='orange', linestyle='-', marker='o', label='Validation Accuracy')
-    plt.title("Accuracy")
+    plt.plot(range(start_plot + 1, end_plot + 1), train_accuracy[start_plot:], color='blue', linestyle='-', marker='o', label='Training Accuracy')
+    plt.plot(range(start_plot + 1, end_plot + 1), valid_accuracy[start_plot:], color='orange', linestyle='-', marker='o', label='Validation Accuracy')
+    plt.title(f"Fold {fold} Accuracy")
     plt.xlabel("Epoches")
     plt.ylabel("Acurracy (%)")
     plt.legend()
@@ -76,7 +76,7 @@ def plot_graph(training_losses, accuracies, figure_path=None, fold=0, start_plot
         plt.show()
 
 if __name__ == '__main__':
-    WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
+    WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
     
     hyper_params_path = WEIGHT_PATH + 'hyper_params.npz'
     loaded_params = np.load(hyper_params_path)
@@ -92,9 +92,10 @@ if __name__ == '__main__':
         TRAINING_LOSSES_PATH = fold_path + 'training_losses.npy'
         ACCURACIES_PATH = fold_path + 'accuracies.npy'
 
-        END_PLOT = len(np.load(TRAINING_LOSSES_PATH))
+        END_PLOT = len(np.load(ACCURACIES_PATH))
         training_losses = list(np.load(TRAINING_LOSSES_PATH))[:END_PLOT]
         accuracies = list(np.load(ACCURACIES_PATH))[:END_PLOT]
-        FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
+        # FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
+        FIGURE_PATH = None
 
         plot_graph(training_losses, accuracies, figure_path=FIGURE_PATH, fold=i, start_plot=START_PLOT, end_plot=END_PLOT)

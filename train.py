@@ -8,14 +8,14 @@ import numpy as np
 from sklearn.model_selection import KFold
 
 # Setup Destination
-DATASET_INIRIAL_PATH = os.getcwd() + '/dataset_initial/'
+DATASET_INIRIAL_PATH = os.getcwd() + '/dataset_mixed/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
+WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
 if not os.path.exists(WEIGHT_PATH):
     os.makedirs(WEIGHT_PATH)
-FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_initial/lr1e-4_with_scaling/'
+FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
 if not os.path.exists(FIGURE_PATH):
     os.makedirs(FIGURE_PATH)
 
@@ -55,7 +55,7 @@ else:
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
 BATCH_SIZE = 16
-LEARNING_RATE = 1e-4
+LEARNING_RATE = 1e-5
 
 # Training Parameters
 WEIGHT_SAVING_STEP = 10

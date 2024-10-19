@@ -1,7 +1,7 @@
 import os
 import numpy as np
 
-DATASET_INITIAL_PATH = os.getcwd() + '/dataset_initial/'
+DATASET_INITIAL_PATH = os.getcwd() + '/dataset_mixed/'
 TRAIN_PATH = DATASET_INITIAL_PATH + 'train/'
 TEST_PATH = DATASET_INITIAL_PATH + 'test/'
 
