@@ -2,7 +2,7 @@ from torch.utils.data import DataLoader
 import torch, os
 from torchvision import transforms
 from spotdatasetloader import SPOTDataLoader
-from FiveResNet18MLP5 import FiveResNet18MLP5
+from FiveResNet18MLP5_7 import FiveResNet18MLP5_7
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -11,15 +11,15 @@ WEIGHT_DATAET_NAME = 'mixed'
 TEST_DATASET_NAME = 'mixed'
 TEST_DATASET_TYPE = 'test'
 FOLD = 0
-WEIGHT_NAME = 'epoch_297.pth'
+WEIGHT_NAME = 'epoch_1718.pth'
 
 # Constant
 DATASET_PATH = os.getcwd() + f'/dataset_{TEST_DATASET_NAME}/'
 TEST_PATH = DATASET_PATH + f'{TEST_DATASET_TYPE}/'
 GOAL_PATH = DATASET_PATH + 'goal/'
-LABEL_PATH = TEST_PATH + 'labels_radians.npy'
-WEIGHT_PATH = os.getcwd() + f'/weights/FiveResNet18MLP5_{WEIGHT_DATAET_NAME}/lr1e-5_with_scaling/fold_{FOLD}/'
-FIGURES_PATH = os.getcwd() + f'/Results/FiveResNet18MLP5_{WEIGHT_DATAET_NAME}/lr1e-5_with_scaling/test/fold_{FOLD}/'
+LABEL_PATH = TEST_PATH + 'labels.npy'
+WEIGHT_PATH = os.getcwd() + f'/weights/FiveResNet18MLP5_{WEIGHT_DATAET_NAME}/lr1e-6_full_output/fold_{FOLD}/'
+FIGURES_PATH = os.getcwd() + f'/Results/FiveResNet18MLP5_{WEIGHT_DATAET_NAME}/lr1e-6_full_output/test/fold_{FOLD}/'
 if not os.path.exists(FIGURES_PATH):
     os.makedirs(FIGURES_PATH)
 
@@ -34,18 +34,18 @@ def test_model(test_dataset, model, weight_name, device='cuda', draw=False, show
     model.eval()
 
     test_dataloader = DataLoader(test_dataset, batch_size=1)
-    results = np.empty([0, 3])
+    results = np.empty([0, 14])
 
     with torch.no_grad():
         idx = 0
         for current_images, goal_images, label in test_dataloader:
             output = model(current_images, goal_images)
-            output_degree = (output.item() / np.pi) * 180
-            label_degree = (label.item() / np.pi) * 180
-            loss = abs(label - output)
+            # output_degree = (output.item() / np.pi) * 180
+            # label_degree = (label.item() / np.pi) * 180
+            # loss = abs(label - output)
 
-            iteration_result = np.array([output_degree, label_degree, loss.item()])
-            results = np.vstack([results, iteration_result])
+            iteration_result = np.array([output.flatten().cpu().numpy(), label.flatten().cpu().numpy()])
+            results = np.vstack([results, iteration_result.flatten()])
 
             print(idx, iteration_result)
             idx += 1
@@ -72,7 +72,7 @@ def test_model(test_dataset, model, weight_name, device='cuda', draw=False, show
 
 if __name__ == '__main__':
 
-    model = FiveResNet18MLP5()
+    model = FiveResNet18MLP5_7()
 
     # Preprocess for images
     data_transforms = transforms.Compose([

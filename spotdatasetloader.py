@@ -18,7 +18,7 @@ class SPOTDataLoader(Dataset):
         self.root_dir = root_dir
         self.goal_folder = goal_folder
         self.transform = transform
-        self.labels = np.load(labels_file)
+        self.labels = np.load(labels_file).astype(np.float32)
 
         if torch.cuda.is_available():
             self.cuda = True

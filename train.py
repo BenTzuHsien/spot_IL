@@ -2,19 +2,20 @@ from torch.utils.data import DataLoader
 import torch, os
 from torchvision import transforms
 from spotdatasetloader import SPOTDataLoader
-from FiveResNet18MLP5 import FiveResNet18MLP5
+# from FiveResNet18MLP5_7 import FiveResNet18MLP5_7
+from DinoFiveResNet18MLP5 import DinoFiveResNet18MLP5
 from plot_graph import plot_graph
 import numpy as np
 from sklearn.model_selection import KFold
 
 # Setup Destination
 DATASET_NAME = 'mixed'
-WEIGHT_FOLDER_NAME = 'lr1e-5_with_scaling'
+WEIGHT_FOLDER_NAME = 'lr1e-6_full_output'
 
 DATASET_INIRIAL_PATH = os.getcwd() + f'/dataset_{DATASET_NAME}/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
-LABEL_PATH = TRAIN_PATH + 'labels_radians.npy'
+LABEL_PATH = TRAIN_PATH + 'labels.npy'
 WEIGHT_PATH = os.getcwd() + f'/weights/FiveResNet18MLP5_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/'
 if not os.path.exists(WEIGHT_PATH):
     os.makedirs(WEIGHT_PATH)
@@ -23,7 +24,7 @@ if not os.path.exists(FIGURE_PATH):
     os.makedirs(FIGURE_PATH)
 
 # KFold Parameters
-NUM_FOLD = 5
+NUM_FOLD = 3
 k_fold = KFold(NUM_FOLD, shuffle=True)
 CONTINUE = [0] * NUM_FOLD   # Start from beginning, use 0
 
@@ -58,10 +59,10 @@ else:
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
 BATCH_SIZE = 16
-LEARNING_RATE = 1e-5
+LEARNING_RATE = 1e-6
 
 # Training Parameters
-WEIGHT_SAVING_STEP = 10
+WEIGHT_SAVING_STEP = 50
 LOSS_SCALE = 1e3
 
 # Validation Parameter
@@ -79,7 +80,7 @@ for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
         os.mkdir(fold_path)
 
     # Setup Model
-    model = FiveResNet18MLP5().to(DEVICE)
+    model = DinoFiveResNet18MLP5().to(DEVICE)
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Tracking Parameters
@@ -114,7 +115,7 @@ for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
             
             optimizer.zero_grad()
             output = model(current_images, goal_images)
-            loss = loss_fn(output.flatten(), labels.float()) * LOSS_SCALE
+            loss = loss_fn(output, labels) * LOSS_SCALE
 
             loss.backward()
             optimizer.step()
@@ -144,7 +145,9 @@ for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
             for current_images, goal_images, labels in train_dataloader:
                 output = model(current_images, goal_images)
                 for i in range(len(output)):
-                    loss = abs(output[i] - labels[i]).item()
+                    loss = 0
+                    for j in range(7):
+                        loss += abs(output[i][j] - labels[i][j]).item()
                     num_total += 1
                     if loss < TOLERANCE:
                         num_correct += 1
@@ -154,7 +157,9 @@ for fold, (train_ids, valid_ids) in enumerate(k_fold.split(train_dataset)):
             for current_images, goal_images, labels in valid_dataloader:
                 output = model(current_images, goal_images)
                 for i in range(len(output)):
-                    loss = abs(output[i] - labels[i]).item()
+                    loss = 0
+                    for j in range(7):
+                        loss += abs(output[i][j] - labels[i][j]).item()
                     num_total += 1
                     if loss < TOLERANCE:
                         num_correct += 1
