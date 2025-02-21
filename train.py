@@ -6,13 +6,13 @@ from spotdatasetloader import SPOTDataLoader
 from DinoFiveResNet18MLP5 import DinoFiveResNet18MLP5
 from plot_graph import plot_graph
 import numpy as np
-from sklearn.model_selection import KFold
 
 # Setup Destination
-DATASET_NAME = 'mixed'
-WEIGHT_FOLDER_NAME = 'lr1e-6_full_output'
+DATASET_NAME = 'map01_01'
+WEIGHT_FOLDER_NAME = 'lr1e-4'
+MODEL_NAME = 'ResNet18MLP'
 
-DATASET_INIRIAL_PATH = os.getcwd() + f'/dataset_{DATASET_NAME}/'
+DATASET_INIRIAL_PATH = os.getcwd() + f'/real_world_dataset/{DATASET_NAME}/'
 TRAIN_PATH = DATASET_INIRIAL_PATH + 'train/'
 GOAL_PATH = DATASET_INIRIAL_PATH + 'goal/'
 LABEL_PATH = TRAIN_PATH + 'labels.npy'
@@ -22,11 +22,6 @@ if not os.path.exists(WEIGHT_PATH):
 FIGURE_PATH = os.getcwd() + f'/Results/FiveResNet18MLP5_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/'
 if not os.path.exists(FIGURE_PATH):
     os.makedirs(FIGURE_PATH)
-
-# KFold Parameters
-NUM_FOLD = 3
-k_fold = KFold(NUM_FOLD, shuffle=True)
-CONTINUE = [0] * NUM_FOLD   # Start from beginning, use 0
 
 # Preprocess for images
 data_transforms = transforms.Compose([
