@@ -21,9 +21,9 @@ class CrossAttentionBlock(nn.Module):
         attn_output = attn_output.permute(1, 2, 0).view(B, C, H, W)
         return attn_output
 
-class SharedResNet18MLP(nn.Module):
+class SharedResNet18MLP5(nn.Module):
     def __init__(self):
-        super(SharedResNet18MLP, self).__init__()
+        super(SharedResNet18MLP5, self).__init__()
         # Shared ResNet18 trunk (excluding the last 2 layers)
         base_resnet = resnet18(weights=None)
         self.shared_trunk = nn.Sequential(*list(base_resnet.children())[:-2])
