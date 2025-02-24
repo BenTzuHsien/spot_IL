@@ -57,15 +57,9 @@ else:
     DEVICE = 'cpu'
     print('CPU')
 
-train_dataset = SPOT_SingleStep_DataLoader(
-        dataset_dirs = DATASET_PATHS,
-        transform = data_transforms,
-        device = DEVICE
-    )
-
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
-BATCH_SIZE = 32
+BATCH_SIZE = 128
 LEARNING_RATE = 1e-4
 
 # Training Parameters
@@ -102,7 +96,11 @@ if CONTINUE > 1:
     accuracies = list(np.load(accuracies_path))[:CONTINUE]
     print('Parameter Loaded!')
 
-train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE)
+train_dataset = SPOT_SingleStep_DataLoader(
+        dataset_dirs = DATASET_PATHS,
+        transform = data_transforms
+    )
+train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8, pin_memory=True)
     
 # Train Model
 while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
@@ -111,6 +109,10 @@ while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
     running_loss = 0.0
     
     for current_images, goal_image, labels in train_dataloader:
+
+        current_images = current_images.to(DEVICE)
+        goal_image = goal_image.to(DEVICE)
+        labels = labels.to(DEVICE)
         
         optimizer.zero_grad()
         output = model(current_images, goal_image)
@@ -145,6 +147,11 @@ while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
 
         num_correct, num_total = 0, 0
         for current_images, goal_image, labels in train_dataloader:
+
+            current_images = current_images.to(DEVICE)
+            goal_image = goal_image.to(DEVICE)
+            labels = labels.to(DEVICE)
+
             output = model(current_images, goal_image)
             for i in range(output.shape[0]):
                 loss = 0

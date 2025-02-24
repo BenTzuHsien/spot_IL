@@ -6,9 +6,8 @@ from PIL import Image
 import numpy as np
 
 class SPOT_SingleStep_DataLoader(Dataset):
-    def __init__(self, dataset_dirs, transform=None, device='cpu'):
+    def __init__(self, dataset_dirs, transform=None):
         self.transform = transform
-        self.device = device
 
         self.current_images_paths = []
         self.labels = np.empty([0, 3])
@@ -36,8 +35,7 @@ class SPOT_SingleStep_DataLoader(Dataset):
             self._len = len(self.current_images_paths)
         
 
-        self.labels = torch.tensor(self.labels).to(device)
-        self.labels = self.labels.to(dtype=torch.float32)
+        self.labels = torch.tensor(self.labels).to(dtype=torch.float32)
 
     def __len__(self):
         return self._len
@@ -70,12 +68,6 @@ class SPOT_SingleStep_DataLoader(Dataset):
 
             for i in range(5):
                 img_path = os.path.join(step_path, f'{i}.jpg')
-                # img = Image.open(img_path)
-                # if transform:
-                #     img = transform(img)
-                # else:
-                #     img = transforms.ToTensor()(img)
-                # img = img.to(dtype=torch.float32)
                 step_imgs_paths.append(img_path)
             
             # step_imgs = torch.stack(step_imgs, dim=0)
@@ -94,7 +86,7 @@ class SPOT_SingleStep_DataLoader(Dataset):
             img = img.to(dtype=torch.float32)
             step_imgs.append(img)
         
-        step_imgs = torch.stack(step_imgs, dim=0).to(dtype=torch.float32).to(self.device)
+        step_imgs = torch.stack(step_imgs, dim=0).to(dtype=torch.float32)
 
         return step_imgs
 
@@ -105,6 +97,6 @@ class SPOT_SingleStep_DataLoader(Dataset):
         else:
             img = transforms.ToTensor()(img)
 
-        img = img.to(dtype=torch.float32).to(self.device)
+        img = img.to(dtype=torch.float32)
 
         return img
