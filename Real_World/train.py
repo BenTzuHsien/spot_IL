@@ -6,23 +6,37 @@ from SPOT_SingleStep_DataLoader import SPOT_SingleStep_DataLoader
 from Resnet18MLP5 import SharedResNet18MLP5
 from plot_graph import plot_graph
 
+def get_least_used_gpu():
+    
+    # Get available memory for each GPU
+    gpu_free_memory = []
+    for i in range(torch.cuda.device_count()):
+        free, _ = torch.cuda.mem_get_info(i)
+        gpu_free_memory.append(free)
+
+    best_gpu = max(range(torch.cuda.device_count()), key=lambda i: gpu_free_memory[i])
+    return best_gpu
+
 CONTINUE = 0   # Start fresh at 0
 
 # Setup Destination
-DATASET_NAME = 'map01_01'
+DATASET_NAMES = ['map01_01', 'map01E_01', 'map01_02']
 WEIGHT_FOLDER_NAME = 'lr1e-4'
 MODEL_NAME = 'ResNet18MLP5'
 
 SCRIPT_PATH = os.path.dirname(__file__)
-DATASET_PATH = os.path.join(SCRIPT_PATH, f'{DATASET_NAME}')
-if not os.path.exists(DATASET_PATH):
-    print('Dataset does not exist !')
-    exit()
+DATASET_PATHS = []
+for dataset_name in DATASET_NAMES:
+    dataset_path = os.path.join('/data/lee04484/SPOT_Real_World_Dataset/', f'{dataset_name}')
+    if not os.path.exists(dataset_path):
+        print(f'Dataset {dataset_name} does not exist !')
+        exit()
+    DATASET_PATHS.append(dataset_path)
 
-WEIGHT_PATH = os.path.join(SCRIPT_PATH, f'weights/{MODEL_NAME}_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/')
+WEIGHT_PATH = os.path.join(SCRIPT_PATH, f'weights/{MODEL_NAME}_{"_".join(DATASET_NAMES)}/{WEIGHT_FOLDER_NAME}/')
 if not os.path.exists(WEIGHT_PATH):
     os.makedirs(WEIGHT_PATH)
-FIGURE_PATH = os.path.join(SCRIPT_PATH, f'Results/{MODEL_NAME}_{DATASET_NAME}/{WEIGHT_FOLDER_NAME}/')
+FIGURE_PATH = os.path.join(SCRIPT_PATH, f'Results/{MODEL_NAME}_{"_".join(DATASET_NAMES)}/{WEIGHT_FOLDER_NAME}/')
 if not os.path.exists(FIGURE_PATH):
     os.makedirs(FIGURE_PATH)
 
@@ -35,26 +49,23 @@ data_transforms = transforms.Compose([
 
 if torch.cuda.is_available():
     
-    train_dataset = SPOT_SingleStep_DataLoader(
-        dataset_dir = DATASET_PATH,
-        transform = data_transforms,
-        cuda = True
-    )
-    DEVICE = 'cuda'
-    print('Cuda')
+    best_gpu = get_least_used_gpu()
+    DEVICE = f'cuda:{best_gpu}'
+    print(f'cuda:{best_gpu}')
 
 else:
-    train_dataset = SPOT_SingleStep_DataLoader(
-        dataset_dir = DATASET_PATH,
-        transform = data_transforms,
-        cuda = False
-    )
     DEVICE = 'cpu'
     print('CPU')
 
+train_dataset = SPOT_SingleStep_DataLoader(
+        dataset_dirs = DATASET_PATHS,
+        transform = data_transforms,
+        device = DEVICE
+    )
+
 # Hyper Parameters
 loss_fn = torch.nn.MSELoss()
-BATCH_SIZE = 16
+BATCH_SIZE = 32
 LEARNING_RATE = 1e-4
 
 # Training Parameters
@@ -108,6 +119,8 @@ while training_loss > ((TOLERANCE ** 2) * LOSS_SCALE):
         loss.backward()
         optimizer.step()
         running_loss += loss.item()
+
+        torch.cuda.empty_cache()
 
     training_loss = running_loss / len(train_dataloader)
 
