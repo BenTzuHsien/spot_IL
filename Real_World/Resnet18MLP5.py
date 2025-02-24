@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18
+from torchvision.models import resnet18, ResNet18_Weights
 
 class CrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, num_heads=8):
@@ -25,7 +25,7 @@ class SharedResNet18MLP5(nn.Module):
     def __init__(self):
         super(SharedResNet18MLP5, self).__init__()
         # Shared ResNet18 trunk (excluding the last 2 layers)
-        base_resnet = resnet18(weights=None)
+        base_resnet = resnet18(weights=ResNet18_Weights.DEFAULT)
         self.shared_trunk = nn.Sequential(*list(base_resnet.children())[:-2])
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
         num_trunk_channels = 512
