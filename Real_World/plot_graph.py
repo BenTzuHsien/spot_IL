@@ -14,7 +14,7 @@ def plot_graph(training_losses, accuracies, weight_save_step, figure_path=None, 
     # Fill with zero
     for i in range(start_plot):
         training_losses[i] = [0, 0]
-        accuracies[i] = [0, 0]
+        accuracies[i] = 0
 
     # Plot Training Loss
     training_loss = [data[0] for data in training_losses]
@@ -71,26 +71,22 @@ def plot_graph(training_losses, accuracies, weight_save_step, figure_path=None, 
         plt.show()
 
 if __name__ == '__main__':
-    WEIGHT_PATH = os.getcwd() + '/weights/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
+    WEIGHT_PATH = '/home/lee04484/spot_IL/Real_World/weights/ResNet50MLP5_map01_01_map01E_01/lr1e-4/'
     
-    # hyper_params_path = WEIGHT_PATH + 'hyper_params.npz'
-    # loaded_params = np.load(hyper_params_path)
-    # params_dict = {key: loaded_params[key].item() for key in loaded_params}
-    # print(params_dict)
+    hyper_params_path = os.path.join(WEIGHT_PATH, 'hyper_params.npz')
+    loaded_params = np.load(hyper_params_path)
+    params_dict = {key: loaded_params[key].item() for key in loaded_params}
+    print(params_dict)
 
-    # NUM_FOLD = 5
-    # END_PLOT = 0
-    # START_PLOT = 0
+    END_PLOT = 0
+    START_PLOT = 0
 
-    # for i in range(NUM_FOLD):
-    #     fold_path = WEIGHT_PATH + 'fold_' + str(i) + '/'
-    #     TRAINING_LOSSES_PATH = fold_path + 'training_losses.npy'
-    #     ACCURACIES_PATH = fold_path + 'accuracies.npy'
+    RESULT_PATH = '/home/lee04484/spot_IL/Real_World/Results/ResNet50MLP5_map01_01_map01E_01/lr1e-4/'
+    TRAINING_LOSSES_PATH = os.path.join(RESULT_PATH, 'training_losses.npy')
+    ACCURACIES_PATH = os.path.join(RESULT_PATH, 'accuracies.npy')
 
-    #     END_PLOT = len(np.load(ACCURACIES_PATH))
-    #     training_losses = list(np.load(TRAINING_LOSSES_PATH))[:END_PLOT]
-    #     accuracies = list(np.load(ACCURACIES_PATH))[:END_PLOT]
-    #     # FIGURE_PATH = os.getcwd() + '/Results/FiveResNet18MLP5_mixed/lr1e-5_with_scaling/'
-    #     FIGURE_PATH = None
+    END_PLOT = len(np.load(ACCURACIES_PATH))
+    training_losses = list(np.load(TRAINING_LOSSES_PATH))[:END_PLOT]
+    accuracies = list(np.load(ACCURACIES_PATH))[:END_PLOT]
 
-    #     plot_graph(training_losses, accuracies, figure_path=FIGURE_PATH, fold=i, start_plot=START_PLOT, end_plot=END_PLOT)
+    plot_graph(training_losses, accuracies, weight_save_step=20, figure_path=RESULT_PATH, start_plot=START_PLOT, end_plot=END_PLOT)

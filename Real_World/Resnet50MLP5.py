@@ -1,6 +1,6 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18, ResNet18_Weights
+from torchvision.models import resnet50, ResNet50_Weights
 
 class CrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, num_heads=8):
@@ -20,15 +20,15 @@ class CrossAttentionBlock(nn.Module):
         attn_output = attn_output.permute(1, 2, 0).view(B, C, H, W)
         return attn_output
 
-class SharedResNet18MLP5(nn.Module):
+class SharedResNet50MLP5(nn.Module):
     def __init__(self):
-        super(SharedResNet18MLP5, self).__init__()
-        # Shared ResNet18 trunk (excluding the last 2 layers)
-        base_resnet = resnet18(weights=ResNet18_Weights.DEFAULT)
+        super(SharedResNet50MLP5, self).__init__()
+        # === Using ResNet-50 trunk (excluding the last 2 layers: avgpool and fc) ===
+        base_resnet = resnet50(weights=ResNet50_Weights.DEFAULT)
         self.shared_trunk = nn.Sequential(*list(base_resnet.children())[:-2])
         self.global_pool = nn.AdaptiveAvgPool2d((1, 1))
-        num_trunk_channels = 512
-        self.num_cameras = 5
+        num_trunk_channels = 2048
+        self.num_cameras = 4
 
         # Camera-specific heads for current images
         self.current_heads = nn.ModuleList([
@@ -50,9 +50,9 @@ class SharedResNet18MLP5(nn.Module):
         self.cross_attention = CrossAttentionBlock(embed_dim=num_trunk_channels, num_heads=8)
 
         # Fully connected layers.
-        # Input feature dimension: 5 cameras * 2 (current + goal) * 512 = 5120.
+        #   Input feature dimension: (4 cameras * 2048) for current + (4 cameras * 2048) for goal = 16384
         self.fc_layer1 = nn.Sequential(
-            nn.Linear(5120, 1024),
+            nn.Linear(16384, 1024),
             nn.ReLU()
         )
         self.fc_layer2 = nn.Sequential(
@@ -76,12 +76,12 @@ class SharedResNet18MLP5(nn.Module):
         goal_features_list = []
 
         # Processing the goal image once through the shared trunk.
-        goal_trunk_feat = self.shared_trunk(goal_image)  # (B, 512, H', W')
+        goal_trunk_feat = self.shared_trunk(goal_image)  # (B, 2048, H', W')
 
         for cam_idx in range(self.num_cameras):
             # Processing current image for camera cam_idx.
             curr = current_images[:, cam_idx, :, :, :]  # (B, C, H, W)
-            curr_feat = self.shared_trunk(curr)         # (B, 512, H', W')
+            curr_feat = self.shared_trunk(curr)         # (B, 2048, H', W')
             curr_feat = self.current_heads[cam_idx](curr_feat)
 
             # Processing the same goal image
@@ -92,16 +92,16 @@ class SharedResNet18MLP5(nn.Module):
             goal_attended = goal_feat + self.cross_attention(goal_feat, curr_feat)
 
             # Global pooling.
-            curr_pooled = self.global_pool(curr_attended).view(batch_size, -1)  # (B, 512)
-            goal_pooled = self.global_pool(goal_attended).view(batch_size, -1)  # (B, 512)
+            curr_pooled = self.global_pool(curr_attended).view(batch_size, -1)  # (B, 2048)
+            goal_pooled = self.global_pool(goal_attended).view(batch_size, -1)  # (B, 2048)
 
             current_features_list.append(curr_pooled)
             goal_features_list.append(goal_pooled)
 
         # Concatenating features from all cameras.
-        current_features = torch.cat(current_features_list, dim=1)  # (B, 5*512)
-        goal_features = torch.cat(goal_features_list, dim=1)        # (B, 5*512)
-        features = torch.cat([current_features, goal_features], dim=1)  # (B, 5120)
+        current_features = torch.cat(current_features_list, dim=1)  # (B, 4*2048 = 8192)
+        goal_features = torch.cat(goal_features_list, dim=1)        # (B, 8192)
+        features = torch.cat([current_features, goal_features], dim=1)  # (B, 16384)
 
         # Fully connected layers.
         x = self.fc_layer1(features)
