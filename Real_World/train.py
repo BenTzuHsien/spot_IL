@@ -84,7 +84,6 @@ if __name__ == '__main__':
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Tracking Parameters
-    epoch = CONTINUE + 1
     training_total_loss = 0
     training_losses = []   #[training_loss training_average_loss]
     tracking_losses_path = os.path.join(FIGURE_PATH, 'training_losses.npy')
@@ -96,7 +95,9 @@ if __name__ == '__main__':
         model.load_state_dict(torch.load(lastest_weight_path))
         print('Weight Loaded!')
         training_losses = list(np.load(tracking_losses_path))[:CONTINUE]
+        tracking_losses_path = os.path.join(FIGURE_PATH, 'new_training_losses.npy')
         accuracies = list(np.load(accuracies_path))[:CONTINUE]
+        accuracies_path = os.path.join(FIGURE_PATH, 'new_accuracies.npy')
         print('Parameter Loaded!')
 
     train_dataset = SPOT_SingleStep_DataLoader(
@@ -106,7 +107,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8, pin_memory=True)
 
     # Train Model
-    for epoch in range(1500):
+    for epoch in range(CONTINUE, 1500):
         
         model.train()
         running_loss = 0.0
@@ -139,7 +140,7 @@ if __name__ == '__main__':
         print(f'Epoch {epoch + 1}, Loss: {training_losses[epoch][0]:.6f}, Average Loss: {training_losses[epoch][1]:.6f}', end='; ')
         np.save(tracking_losses_path, training_losses)
 
-        if (epoch % WEIGHT_SAVING_STEP) == 0:
+        if ((epoch + 1) % WEIGHT_SAVING_STEP) == 0:
             weight_save_path = os.path.join(WEIGHT_PATH, 'epoch_' + str(epoch + 1) + '.pth')
             torch.save(model.state_dict(), weight_save_path)
             print('Save Weights', end='; ')
