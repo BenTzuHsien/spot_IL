@@ -3,14 +3,14 @@ import numpy as np
 from torchvision import transforms
 from torch.utils.data import DataLoader
 from SPOT_SingleStep_DataLoader import SPOT_SingleStep_DataLoader
-from Resnet18MLP5 import SharedResNet18MLP5
+from models.Resnet18MLP5 import SharedResNet18MLP5
 from plot_graph import plot_graph
 
 CONTINUE = 0   # Start fresh at 0
 
 # Setup Destination
-MODEL_NAME = 'ResNet18MLP5'
-DATASET_NAMES = ['map01_01', 'map01E1_01', 'map01E2_01', 'map01E3_01']
+MODEL_NAME = 'Template_1GPU_ResNet18MLP5'
+DATASET_NAMES = ['map01_01a', 'map01_01b', 'map01_02a', 'map01_02b', 'map01_03a', 'map01_03b']
 DATASET_DIR = '/data/lee04484/SPOT_Real_World_Dataset/'
 
 # Hyper Parameters
@@ -107,7 +107,7 @@ if __name__ == '__main__':
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8, pin_memory=True)
 
     # Train Model
-    for epoch in range(CONTINUE, 1500):
+    for epoch in range(CONTINUE, 1000):
         
         model.train()
         running_loss = 0.0

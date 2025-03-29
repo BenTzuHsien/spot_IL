@@ -1,6 +1,5 @@
 import torch
 import torch.nn as nn
-from torchvision.models import resnet18, ResNet18_Weights
 
 class CrossAttentionBlock(nn.Module):
     def __init__(self, embed_dim, num_heads=8):
