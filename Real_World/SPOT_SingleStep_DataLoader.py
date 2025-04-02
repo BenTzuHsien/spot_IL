@@ -50,7 +50,8 @@ class SPOT_SingleStep_DataLoader(Dataset):
     def extract_trajectory(dataset_dir, trajectory):
 
         trajectory_dir = os.path.join(dataset_dir, trajectory)
-        steps = sorted(os.listdir(trajectory_dir))[:-1]
+        steps = [x for x in os.listdir(trajectory_dir) if x.isdigit()]
+        steps = sorted(steps)
         
         # Goal Image Tags
         goal_image_path = os.path.join(dataset_dir, 'Goal_Images', f'{trajectory}.jpg')
