@@ -41,25 +41,23 @@ class DinoCnn2MLP3(nn.Module):
         ])
 
         # Camera-specific heads for the goal image
-        self.goal_heads = nn.ModuleList([
-            nn.Sequential(
+        self.goal_heads = nn.Sequential(
                 nn.Conv2d(num_trunk_channels, num_trunk_channels, kernel_size=3, padding=1),
                 nn.Conv2d(num_trunk_channels, num_trunk_channels * 2, kernel_size=3, padding=1),
                 nn.ReLU(inplace=True)
-            ) for _ in range(self.num_cameras)
-        ])
+        )
 
         # Cross-attention block shared across cameras
-        self.cross_attention = CrossAttentionBlock(embed_dim=num_trunk_channels, num_heads=8)
+        self.cross_attention = CrossAttentionBlock(embed_dim=num_trunk_channels * 2, num_heads=8)
 
         # Fully connected layers.
         # Input feature dimension: 5 cameras * 2 (current + goal) * 512 = 5120.
         self.fc_layer1 = nn.Sequential(
-            nn.Linear(3840, 1024),
+            nn.Linear(7680, 4096),
             nn.ReLU()
         )
         self.fc_layer2 = nn.Sequential(
-            nn.Linear(1024, 1024),
+            nn.Linear(4096, 1024),
             nn.ReLU()
         )
         # Final output layer produces 3 regression outputs.
@@ -75,7 +73,7 @@ class DinoCnn2MLP3(nn.Module):
             dino_output = self.shared_trunk.forward_features(goal_image)
         goal_trunk_feat = torch.reshape(dino_output['x_norm_patchtokens'], [-1, 16, 16, 384])
         goal_trunk_feat = goal_trunk_feat.permute(0, 3, 1, 2)
-        goal_feat = self.goal_heads[cam_idx](goal_trunk_feat)
+        goal_feat = self.goal_heads(goal_trunk_feat)
 
         for cam_idx in range(self.num_cameras):
             # Processing current image for camera cam_idx.
