@@ -53,7 +53,7 @@ if __name__ == '__main__':
 
     # Setup Weight & Result Saving Path
     SCRIPT_PATH = os.path.dirname(__file__)
-    WEIGHT_FOLDER_NAME = f'lr{LEARNING_RATE:.0e}'
+    WEIGHT_FOLDER_NAME = 'cleanup'
     WEIGHT_PATH = os.path.join(SCRIPT_PATH, f'weights/{MODEL_NAME}_{"_".join(DATASET_NAMES)}/{WEIGHT_FOLDER_NAME}/')
     if not os.path.exists(WEIGHT_PATH):
         os.makedirs(WEIGHT_PATH)
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # Multi-GPU Setup
     if torch.cuda.is_available():
-        top_gpus = get_top_available_gpus(5)
+        top_gpus = get_top_available_gpus(3)
         primary_device = f'cuda:{top_gpus[0]}'
         print(f'Using GPUs: {top_gpus}')
         model = SharedDinoMLP5().to(primary_device)

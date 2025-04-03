@@ -2,14 +2,14 @@ import torch, os
 import numpy as np
 from torchvision import transforms
 from torch.utils.data import DataLoader
-from SPOT_SingleStep_DataLoader import SPOT_SingleStep_DataLoader
-from models.Resnet18MLP5 import SharedResNet18MLP5
+from SPOT_SingleStep_Discredtized_DataLoader import SPOT_SingleStep_Discretized_DataLoader
+from models.DinoMLP5_discretized import DinoMLP5_discretized
 from plot_graph import plot_graph
 
 CONTINUE = 0   # Start fresh at 0
 
 # Setup Destination
-MODEL_NAME = 'ResNet18MLP5'
+MODEL_NAME = 'DinoMLP_discretized'
 DATASET_NAMES = ['map01_01a', 'map01_01b', 'map01_02a', 'map01_02b', 'map01_03a', 'map01_03b']
 DATASET_DIR = '/data/lee04484/SPOT_Real_World_Dataset/cleanup_dataset/'
 
@@ -19,21 +19,18 @@ LEARNING_RATE = 1e-4
 
 # Training Parameters
 WEIGHT_SAVING_STEP = 20
-LOSS_SCALE = 1e3
 
 # Validation Parameter
 TOLERANCE = 1e-2
 
-def get_least_used_gpu():
-    
-    # Get available memory for each GPU
+def get_top_available_gpus(n=3):
+    # Get available memory for each GPU and return the indices of the top n GPUs
     gpu_free_memory = []
     for i in range(torch.cuda.device_count()):
         free, _ = torch.cuda.mem_get_info(i)
-        gpu_free_memory.append(free)
-
-    least_used_gpu = max(range(torch.cuda.device_count()), key=lambda i: gpu_free_memory[i])
-    return least_used_gpu
+        gpu_free_memory.append((free, i))
+    top_gpus = sorted(gpu_free_memory, reverse=True)[:n]
+    return [gpu_idx for free, gpu_idx in top_gpus]
 
 # Preprocess for images
 data_transforms = transforms.Compose([
@@ -49,7 +46,7 @@ if __name__ == '__main__':
     for dataset_name in DATASET_NAMES:
         dataset_path = os.path.join(DATASET_DIR, f'{dataset_name}')
         if not os.path.exists(dataset_path):
-            print(f'Dataset {dataset_name} does not exist !')
+            print(f'Dataset {dataset_name} does not exist!')
             exit()
         DATASET_PATHS.append(dataset_path)
 
@@ -63,29 +60,32 @@ if __name__ == '__main__':
     if not os.path.exists(FIGURE_PATH):
         os.makedirs(FIGURE_PATH)
 
+    # Multi-GPU Setup
     if torch.cuda.is_available():
-        least_used_gpu = get_least_used_gpu()
-        DEVICE = f'cuda:{least_used_gpu}'
-        print(f'cuda:{least_used_gpu}')
-
+        top_gpus = get_top_available_gpus(2)
+        primary_device = f'cuda:{top_gpus[0]}'
+        print(f'Using GPUs: {top_gpus}')
+        model = DinoMLP5_discretized().to(primary_device)
+        model = torch.nn.DataParallel(model, device_ids=top_gpus)
+        DEVICE = primary_device  # For consistency in moving tensors to device
     else:
         DEVICE = 'cpu'
-        print('CPU')
+        print('Using CPU')
+        model = DinoMLP5_discretized().to(DEVICE)
 
     # Saving Hyper Param
     hyper_params_path = os.path.join(WEIGHT_PATH, 'hyper_params')
-    hyper_params = {'BATCH_SIZE': BATCH_SIZE, 'LEARNING_RATE': LEARNING_RATE, 'LOSS_SCALE': LOSS_SCALE, 'TOLERANCE': TOLERANCE}
-    print(f'BATCH_SIZE: {BATCH_SIZE}, LEARNING_RATE: {LEARNING_RATE}, LOSS_SCALE: {LOSS_SCALE}, TOLERANCE: {TOLERANCE}')
+    hyper_params = {'BATCH_SIZE': BATCH_SIZE, 'LEARNING_RATE': LEARNING_RATE, 'TOLERANCE': TOLERANCE}
+    print(f'BATCH_SIZE: {BATCH_SIZE}, LEARNING_RATE: {LEARNING_RATE}, TOLERANCE: {TOLERANCE}')
     np.savez(hyper_params_path, **hyper_params)
 
-    # Setup Model
-    model = SharedResNet18MLP5().to(DEVICE)
-    loss_fn = torch.nn.MSELoss()
+    # Setup loss function and optimizer
+    loss_fn = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=LEARNING_RATE)
 
     # Tracking Parameters
     training_total_loss = 0
-    training_losses = []   #[training_loss training_average_loss]
+    training_losses = []   # [training_loss, training_average_loss]
     tracking_losses_path = os.path.join(FIGURE_PATH, 'training_losses.npy')
     accuracies = []
     accuracies_path = os.path.join(FIGURE_PATH, 'accuracies.npy')
@@ -100,27 +100,29 @@ if __name__ == '__main__':
         accuracies_path = os.path.join(FIGURE_PATH, 'new_accuracies.npy')
         print('Parameter Loaded!')
 
-    train_dataset = SPOT_SingleStep_DataLoader(
-            dataset_dirs = DATASET_PATHS,
-            transform = data_transforms
+    train_dataset = SPOT_SingleStep_Discretized_DataLoader(
+            dataset_dirs=DATASET_PATHS,
+            transform=data_transforms
         )
     train_dataloader = DataLoader(train_dataset, batch_size=BATCH_SIZE, shuffle=True, num_workers=8, pin_memory=True)
 
     # Train Model
     for epoch in range(CONTINUE, 1000):
-        
+
         model.train()
         running_loss = 0.0
-        
+
         for current_images, goal_image, labels in train_dataloader:
 
             current_images = current_images.to(DEVICE)
             goal_image = goal_image.to(DEVICE)
             labels = labels.to(DEVICE)
-            
+
             optimizer.zero_grad()
-            output = model(current_images, goal_image)
-            loss = loss_fn(output, labels) * LOSS_SCALE
+            outputs = model(current_images, goal_image)
+            
+            outputs = outputs.permute(0, 2, 1)   # To accomadate how CrossEnropyLoss function accept as input (Batch_size, Num_classes, ...)
+            loss = loss_fn(outputs, labels)
 
             loss.backward()
             optimizer.step()
@@ -142,6 +144,7 @@ if __name__ == '__main__':
 
         if ((epoch + 1) % WEIGHT_SAVING_STEP) == 0:
             weight_save_path = os.path.join(WEIGHT_PATH, 'epoch_' + str(epoch + 1) + '.pth')
+            # When using DataParallel, save the model.module's state dict
             torch.save(model.state_dict(), weight_save_path)
             print('Save Weights', end='; ')
 
@@ -156,14 +159,13 @@ if __name__ == '__main__':
                 goal_image = goal_image.to(DEVICE)
                 labels = labels.to(DEVICE)
 
-                output = model(current_images, goal_image)
-                for i in range(output.shape[0]):
-                    loss = 0
-                    for j in range(output.shape[1]):
-                        loss += abs(output[i][j] - labels[i][j]).item()
-                    num_total += 1
-                    if loss < TOLERANCE:
-                        num_correct += 1
+                outputs = model(current_images, goal_image)
+                prediction = torch.argmax(outputs, dim = 2)
+
+                prediction_mask = torch.all(prediction == labels, dim=1)
+                num_total += prediction_mask.shape[0]
+                num_correct += prediction_mask.sum().item()
+
             train_accuracy = (num_correct / num_total) * 100
 
             accuracies.append(train_accuracy)
