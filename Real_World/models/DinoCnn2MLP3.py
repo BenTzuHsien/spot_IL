@@ -34,8 +34,8 @@ class DinoCnn2MLP3(nn.Module):
         # Camera-specific heads for current images
         self.current_heads = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(num_trunk_channels, num_trunk_channels, kernel_size=3),
-                nn.Conv2d(num_trunk_channels, num_trunk_channels * 2, kernel_size=3),
+                nn.Conv2d(num_trunk_channels, num_trunk_channels, kernel_size=3, padding=1),
+                nn.Conv2d(num_trunk_channels, num_trunk_channels * 2, kernel_size=3, padding=1),
                 nn.ReLU(inplace=True)
             ) for _ in range(self.num_cameras)
         ])
@@ -43,8 +43,8 @@ class DinoCnn2MLP3(nn.Module):
         # Camera-specific heads for the goal image
         self.goal_heads = nn.ModuleList([
             nn.Sequential(
-                nn.Conv2d(num_trunk_channels, num_trunk_channels, kernel_size=3),
-                nn.Conv2d(num_trunk_channels, num_trunk_channels * 2, kernel_size=3),
+                nn.Conv2d(num_trunk_channels, num_trunk_channels, kernel_size=3, padding=1),
+                nn.Conv2d(num_trunk_channels, num_trunk_channels * 2, kernel_size=3, padding=1),
                 nn.ReLU(inplace=True)
             ) for _ in range(self.num_cameras)
         ])
