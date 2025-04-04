@@ -62,7 +62,7 @@ if __name__ == '__main__':
 
     # Multi-GPU Setup
     if torch.cuda.is_available():
-        top_gpus = get_top_available_gpus(3)
+        top_gpus = get_top_available_gpus(2)
         primary_device = f'cuda:{top_gpus[0]}'
         print(f'Using GPUs: {top_gpus}')
         model = DinoCnn2MLP3_discretized().to(primary_device)

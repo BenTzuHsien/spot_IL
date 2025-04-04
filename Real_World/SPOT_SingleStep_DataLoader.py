@@ -30,7 +30,7 @@ class SPOT_SingleStep_DataLoader(Dataset):
             raise ValueError(f"Data length not consistent: "
                             f"current_images={len(self.current_images_paths)}, "
                             f"labels={self.labels.shape[0]}, "
-                            f"goal_image_tags={len(self.goal_image_tags)}")
+                            f"goal_image_tags={len(self.goal_image_paths)}")
         else:
             self._len = len(self.current_images_paths)
         

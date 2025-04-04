@@ -11,7 +11,7 @@ CONTINUE = 0   # Start fresh at 0
 # Setup Destination
 MODEL_NAME = 'DinoMLP'
 DATASET_NAMES = ['map01_01a', 'map01_01b', 'map01_02a', 'map01_02b', 'map01_03a', 'map01_03b']
-DATASET_DIR = '/data/lee04484/SPOT_Real_World_Dataset/'
+DATASET_DIR = '/data/lee04484/SPOT_Real_World_Dataset/cleanup_dataset/'
 
 # Hyper Parameters
 BATCH_SIZE = 128
@@ -63,7 +63,7 @@ if __name__ == '__main__':
 
     # Multi-GPU Setup
     if torch.cuda.is_available():
-        top_gpus = get_top_available_gpus(3)
+        top_gpus = get_top_available_gpus(2)
         primary_device = f'cuda:{top_gpus[0]}'
         print(f'Using GPUs: {top_gpus}')
         model = SharedDinoMLP5().to(primary_device)

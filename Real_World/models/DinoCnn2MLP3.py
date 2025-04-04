@@ -53,11 +53,11 @@ class DinoCnn2MLP3(nn.Module):
         # Fully connected layers.
         # Input feature dimension: 5 cameras * 2 (current + goal) * 512 = 5120.
         self.fc_layer1 = nn.Sequential(
-            nn.Linear(7680, 4096),
+            nn.Linear(7680, 1024),
             nn.ReLU()
         )
         self.fc_layer2 = nn.Sequential(
-            nn.Linear(4096, 1024),
+            nn.Linear(1024, 1024),
             nn.ReLU()
         )
         # Final output layer produces 3 regression outputs.
