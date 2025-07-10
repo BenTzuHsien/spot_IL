@@ -3,30 +3,25 @@ import torch
 from torch.utils.data import Dataset
 from torchvision import transforms
 from PIL import Image
-import numpy as np
-import pandas as pd
 
 class SPOT_SingleStep_Discretized_DataLoader(Dataset):
-    def __init__(self, dataset_dirs, transform=None):
+    def __init__(self, dataset_dir, transform=None, use_embeddings=False):
         self.transform = transform
+        self.use_embeddings = use_embeddings
 
+        self.dataset_dir = dataset_dir
         self.current_images_paths = []
-        self.labels = np.empty([0, 3])
+        self.labels = torch.empty([0, 3])
         self.goal_image_paths = []
 
         if not isinstance(dataset_dirs, list):
             dataset_dirs = [dataset_dirs]
 
         for dataset_dir in dataset_dirs:
-            # now folders are named "000", "001"
             trajectories = [item for item in os.listdir(dataset_dir) if item.isdigit()]
             trajectories = sorted(trajectories, key=lambda x: int(x))
             for trajectory in trajectories:
                 traj_imgs_paths, traj_labels, traj_goal = self.extract_trajectory(dataset_dir, trajectory)
-                # print(f"[DEBUG init] traj {trajectory}:")
-                # print(f"steps loaded = {len(traj_imgs_paths)}")
-                # print(f"labels shape  = {traj_labels.shape}")
-                # print(f"goal entries  = {len(traj_goal)}")
                 self.current_images_paths.extend(traj_imgs_paths)
                 self.labels = np.vstack([self.labels, traj_labels])
                 self.goal_image_paths.extend(traj_goal)
@@ -58,7 +53,27 @@ class SPOT_SingleStep_Discretized_DataLoader(Dataset):
 
         return step_imgs, goal_imgs, self.labels[idx]
     
+    def get_goal(self):
+        goal_dir = os.path.join(self.dataset_dir, 'Goal_Images')
+
+        if self.use_embeddings:
+            goal_embeddings = []
+            for i in range(4):
+                goal_embedding_path = os.path.join(goal_dir, f'{i}.pt')
+                embedding = torch.load(goal_embedding_path, map_location='cpu', weights_only=True)
+                goal_embeddings.append(embedding)
+            goal_embeddings = torch.stack(goal_embeddings)
+            return goal_embeddings
         
+        else:
+            goal_images = []
+            for i in range(4):
+                goal_image_path = os.path.join(goal_dir, f'{i}.jpg')
+                image = Image.open(goal_image_path)
+                if self.transform:
+                    image = self.transform(image)
+                goal_images.append(image)
+            return goal_images
     
     @staticmethod
     def extract_trajectory(dataset_dir, trajectory):
